@@ -1,15 +1,19 @@
-Sae lol
+---------------------------
+-- SAE LEAGUE OF LEGENDS -- 
+---------------------------
 
 -- EQUIPE --
-CREATE TABLE teams (
-  id INTEGER PRIMARY KEY,
-  name TEXT NOT NULL,
-  region TEXT NOT NULL
+CREATE TABLE equipe (
+  id_equipe INTEGER PRIMARY KEY,
+  nom_equipe TEXT NOT NULL,
+  region_equipe TEXT NOT NULL
 );
+
+
 -----------------------------
 
 -- Tuples Equipe --
-INSERT INTO teams (id, name, region) VALUES
+INSERT INTO equipe (id_equipe, nom_equipe, region_equipe) VALUES
   (1, 'SK Telecom T1', 'South Korea'),
   (2, 'Gen.G', 'South Korea'),
   (3, 'DragonX', 'South Korea'),
@@ -23,17 +27,21 @@ INSERT INTO teams (id, name, region) VALUES
 --------------------------
 
 
--- JOUEUR --
-CREATE TABLE players (
-  id INTEGER PRIMARY KEY,
-  name TEXT NOT NULL,
-  truename TEXT NOT NULL,
-  birth date NOT NULL, 
-  team_id INTEGER NOT NULL,
-  FOREIGN KEY (team_id) REFERENCES teams (id));
+-- JOUEUR -- 
+CREATE TABLE joueurs (
+  id_joueur INTEGER PRIMARY KEY,
+  pseudo_jeu TEXT NOT NULL,
+  nom_joueur TEXT NOT NULL,
+  datenaissance date NOT NULL, 
+  id_team INTEGER NOT NULL,
+  -- id_role INT NOT NULL,
+  FOREIGN KEY (id_team) REFERENCES equipe (id));
+  -- FOREIGN KEY(id_role) REFERENCES Rôle(id_role),
+
+
 
 -- TUPLES JOUEUR --
-INSERT INTO players (id, name, truename , birth , team_id) VALUES
+INSERT INTO joueurs (id_joueur, pseudo_jeu, nom_joueur , datenaissance , id_team) VALUES
   (1, 'Faker', 'Lee Sang-hyeok' , '07/05/1996' ,  1),
   (2, 'Zeus', 'Choi Woo-je' ,'31/01/2004' , 1),
   (3, 'Oner' , 'Mun Hyeon-jun' ,'24/12/2002' , 1),
@@ -89,25 +97,121 @@ INSERT INTO players (id, name, truename , birth , team_id) VALUES
 
 
 -- MATCH , avec score , gagnant--
-CREATE TABLE matches (
-  id INTEGER PRIMARY KEY,
-  team1_id INTEGER NOT NULL,
-  team2_id INTEGER NOT NULL,
-  team1_score INTEGER NOT NULL,
-  team2_score INTEGER NOT NULL,
-  winner_id INTEGER NOT NULL,
-  FOREIGN KEY (team1_id) REFERENCES teams (id),
-  FOREIGN KEY (team2_id) REFERENCES teams (id),
-  FOREIGN KEY (winner_id) REFERENCES teams (id)
+CREATE TABLE matchs (
+  id_match INTEGER PRIMARY KEY,
+  equipe1_id INTEGER NOT NULL,
+  equipe2_id INTEGER NOT NULL,
+  equipe1_score INTEGER NOT NULL,
+  equipe2_score INTEGER NOT NULL,
+  date_match DATE NOT NULL, 
+  duree_match INT,
+  FOREIGN KEY (equipe1_id) REFERENCES equipe (id),
+  FOREIGN KEY (equipe2_id) REFERENCES equipe (id)
 );
 
 -- Tuples match , id du match , les deux equipe , le score eq1 et eq2 et gagnant--
-INSERT INTO matches (id, team1_id, team2_id, team1_score, team2_score, winner_id) VALUES
-  (1, 1, 3, 3, 2, 1),
-  (2, 2, 4, 2, 3, 4),
-  (3, 5, 6, 1, 3, 6);
+-- INSERT INTO matches (id_match, equipe1_id, equipe2_id, equipe1_score, equipe2_score, winner_id) VALUES
+--   (1, 1, 3, 3, 2, 1),
+--   (2, 2, 4, 2, 3, 4),
+--   (3, 5, 6, 1, 3, 6);
+
+-- Comment gérer ? 
 ----------
 
+
+
+
+
+
+
+
+
+CREATE TABLE penalite(
+  id_penalite INT PRIMARY KEY,
+  type_penalite VARCHAR(50) NOT NULL,
+);
+
+
+
+
+
+CREATE TABLE statistiques_equipe(
+  id_stastistiques INT PRIMARY KEY,
+  nombre_victoires INT,
+  nombre_défaites INT,
+);
+
+
+
+CREATE TABLE role(
+  id_role INT PRIMARY KEY,
+  nom_role VARCHAR(50),
+);
+
+
+
+
+CREATE TABLE classement(
+  position INT PRIMARY KEY,
+  victoires INT,
+  défaites INT,
+  matchs_joués INT,
+  ratio INT,
+  enchainement_victoires INT,
+);
+
+
+
+CREATE TABLE personnage_fictif(
+  id_personnage INT PRIMARY KEY,
+  nom_personnage VARCHAR(50),
+  id_role INT NOT NULL,
+  FOREIGN KEY(id_role) REFERENCES role(id_role)
+);
+
+
+CREATE TABLE avoir_pénalite(
+  id_equipe INT,
+  id_joueur INT,
+  id_penalite INT,
+  PRIMARY KEY(id_equipe, id_joueur, id_penalite),
+  FOREIGN KEY(id_equipe) REFERENCES Équipe(id_equipe),
+  FOREIGN KEY(id_joueur) REFERENCES Joueur(id_joueur),
+  FOREIGN KEY(id_penalite) REFERENCES Pénalité(id_penalite)
+);
+
+
+CREATE TABLE statistiques_match(
+  id_equipe INT,
+  id_joueur INT,
+  id_match INT,
+  nombre_kills INT,
+  nombre_morts INT,
+  PRIMARY KEY(id_equipe, id_joueur, id_match),
+  FOREIGN KEY(id_equipe) REFERENCES Équipe(id_equipe),
+  FOREIGN KEY(id_joueur) REFERENCES Joueur(id_joueur),
+  FOREIGN KEY(id_match) REFERENCES Matchs(id_match)
+);
+
+
+
+CREATE TABLE marquer_point(
+   id_match INT,
+   id_match_1 INT,
+   PRIMARY KEY(id_match, id_match_1),
+   FOREIGN KEY(id_match) REFERENCES Matchs(id_match),
+   FOREIGN KEY(id_match_1) REFERENCES Matchs(id_match)
+);
+
+
+
+
+
+
+
+---------------------
+--- TRIGER ---------
+--------------------
 
 
 
@@ -145,7 +249,7 @@ CREATE TABLE rankings (
   team_id INTEGER NOT NULL,
   wins INTEGER NOT NULL,
   losses INTEGER NOT NULL,
-  FOREIGN KEY (team_id) REFERENCES teams (id)
+  FOREIGN KEY (team_id) REFERENCES equipe (id)
 );
 
 INSERT INTO rankings (id, team_id, wins, losses) VALUES
