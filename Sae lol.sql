@@ -109,17 +109,18 @@ CREATE TABLE matchs (
   FOREIGN KEY (equipe2_id) REFERENCES equipe (id)
 );
 
--- Tuples match , id du match , les deux equipe , le score eq1 et eq2 et gagnant--
--- INSERT INTO matches (id_match, equipe1_id, equipe2_id, equipe1_score, equipe2_score, winner_id) VALUES
---   (1, 1, 3, 3, 2, 1),
---   (2, 2, 4, 2, 3, 4),
---   (3, 5, 6, 1, 3, 6);
 
--- Comment gérer ? 
-----------
-
-
-
+INSERT INTO matchs VALUES 
+  (1, 1, 2, 5, 1, '06/07/2022', 45),
+  (2, 2, 3, 1, 0, '07/07/2022', 25),
+  (3, 3, 4, 0, 2, '08/07/2022', 29),
+  (4, 4, 5, 1, 3, '09/07/2022', 40),
+  (5, 5, 6, 0, 1, '10/07/2022', 30),
+  (6, 6, 7, 2, 1, '11/07/2022', 24),
+  (7, 7, 8, 3, 1, '12/07/2022', 34),
+  (8, 8, 9, 2, 0, '13/07/2022', 40),
+  (9, 9, 10, 1, 2, '14/07/2022', 36),
+  (10, 10, 1, 0, 3, '25/07/2022', 41)
 
 
 
@@ -131,7 +132,13 @@ CREATE TABLE penalite(
   type_penalite VARCHAR(50) NOT NULL,
 );
 
-
+INSERT INTO penalite VALUES 
+  (1, 'Retard'), 
+  (2, 'Absence'),
+  (3, 'Tricherie'),
+  (4, 'Dopage'),
+  (5, 'Insultes')
+  
 
 
 
@@ -147,6 +154,14 @@ CREATE TABLE role(
   id_role INT PRIMARY KEY,
   nom_role VARCHAR(50),
 );
+
+INSERT INTO role VALUES 
+  (1, 'assassins'),
+  (2, 'mages'),
+  (3, 'tanks'),
+  (4, 'tireurs'),
+  (5, 'supports'),
+  (6, 'combattants')
 
 
 
@@ -170,15 +185,32 @@ CREATE TABLE personnage_fictif(
 );
 
 
-CREATE TABLE avoir_pénalite(
+-- Pour Antoine ça 
+
+
+
+
+CREATE TABLE avoir_penalite(
   id_equipe INT,
   id_joueur INT,
   id_penalite INT,
   PRIMARY KEY(id_equipe, id_joueur, id_penalite),
-  FOREIGN KEY(id_equipe) REFERENCES Équipe(id_equipe),
-  FOREIGN KEY(id_joueur) REFERENCES Joueur(id_joueur),
-  FOREIGN KEY(id_penalite) REFERENCES Pénalité(id_penalite)
+  FOREIGN KEY(id_equipe) REFERENCES equipe(id_equipe),
+  FOREIGN KEY(id_joueur) REFERENCES joueurs(id_joueur),
+  FOREIGN KEY(id_penalite) REFERENCES penalite(id_penalite)
 );
+
+  
+
+INSERT INTO avoir_penalite VALUES
+  (1,2,1),
+  (1,3,3),
+  (3,12,1),
+  (6,30,5),
+  (7,35,1),
+  (8,39,5),
+  (9,41,4)
+
 
 
 CREATE TABLE statistiques_match(
@@ -188,9 +220,9 @@ CREATE TABLE statistiques_match(
   nombre_kills INT,
   nombre_morts INT,
   PRIMARY KEY(id_equipe, id_joueur, id_match),
-  FOREIGN KEY(id_equipe) REFERENCES Équipe(id_equipe),
-  FOREIGN KEY(id_joueur) REFERENCES Joueur(id_joueur),
-  FOREIGN KEY(id_match) REFERENCES Matchs(id_match)
+  FOREIGN KEY(id_equipe) REFERENCES equipe(id_equipe),
+  FOREIGN KEY(id_joueur) REFERENCES joueur(id_joueur),
+  FOREIGN KEY(id_match) REFERENCES matchs(id_match)
 );
 
 
@@ -199,8 +231,8 @@ CREATE TABLE marquer_point(
    id_match INT,
    id_match_1 INT,
    PRIMARY KEY(id_match, id_match_1),
-   FOREIGN KEY(id_match) REFERENCES Matchs(id_match),
-   FOREIGN KEY(id_match_1) REFERENCES Matchs(id_match)
+   FOREIGN KEY(id_match) REFERENCES matchs(id_match),
+   FOREIGN KEY(id_match_1) REFERENCES matchs(id_match)
 );
 
 
