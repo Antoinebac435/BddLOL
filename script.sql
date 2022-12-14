@@ -114,9 +114,9 @@ CREATE TABLE classement_meilleurs_tueurs
 DROP TABLE IF EXISTS statistiques_joueurs CASCADE;
 CREATE TABLE statistiques_joueurs
   (
-    id_joueur   INTEGER,
-    total_kills INTEGER,
-    total_morts INT
+    id_joueur      INTEGER,
+    total_victimes INTEGER,
+    total_morts    INTEGER
   );
 
 INSERT INTO equipe (id_equipe, nom_equipe, pays_equipe) VALUES
