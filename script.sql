@@ -108,10 +108,16 @@ CREATE TABLE classement_meilleurs_tueurs
   (
     id_joueur         INTEGER NOT NULL,
     id_equipe        INTEGER NOT NULL,
-    nombre_de_victimes INTEGER NOT NULL,
+    nombre_de_victimes INTEGER NOT NULL
   );
  
-  
+DROP TABLE IF EXISTS statistiques_joueurs CASCADE;
+CREATE TABLE statistiques_joueurs
+  (
+    id_joueur   INTEGER,
+    total_kills INTEGER,
+    total_morts INT
+  );
 
 INSERT INTO equipe (id_equipe, nom_equipe, pays_equipe) VALUES
   (1, 'SK Telecom T1', 'South Korea'),
