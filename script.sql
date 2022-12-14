@@ -96,11 +96,22 @@ CREATE TABLE classement
     nombre_victoires INTEGER NOT NULL,
     nombre_defaites  INTEGER NOT NULL,
     matchs_joues           INT,
-    ratio                  INT,
+    points                  INT,
     enchainement_victoires INT,
     PRIMARY KEY(id_equipe),
     FOREIGN KEY(id_equipe) REFERENCES equipe(id_equipe)
   );
+  
+  
+DROP TABLE IF EXISTS classement_meilleurs_tueurs CASCADE;
+CREATE TABLE classement_meilleurs_tueurs
+  (
+    id_joueur         INTEGER NOT NULL,
+    id_equipe        INTEGER NOT NULL,
+    nombre_de_victimes INTEGER NOT NULL,
+  );
+ 
+  
 
 INSERT INTO equipe (id_equipe, nom_equipe, pays_equipe) VALUES
   (1, 'SK Telecom T1', 'South Korea'),
