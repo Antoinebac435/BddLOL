@@ -120,16 +120,16 @@ CREATE TABLE statistiques_joueurs
   );
 
 INSERT INTO equipe (id_equipe, nom_equipe, pays_equipe) VALUES
-  (1, 'SK Telecom T1', 'South Korea'),
-  (2, 'Gen.G', 'South Korea'),
-  (3, 'DragonX', 'South Korea'),
-  (4, 'Liiv SANDBOX', 'South Korea'),
-  (5, 'DWG KIA', 'South Korea'),
-  (6, 'KT Rolster' , 'South Korea'),
-  (7, 'Kwangdong Freecs' , 'South Korea'),
-  (8, 'Nogshim RedForce' , 'South Korea'),
-  (9, 'Fredit BRION' , 'South Korea'),
-  (10, 'Hanwha Life Esports' , 'South Korea');
+  (1, 'SK Telecom T1', 'Coree du Sud'),
+  (2, 'Gen.G', 'Coree du Sud'),
+  (3, 'DragonX', 'Coree du Sud'),
+  (4, 'Liiv SANDBOX', 'Coree du Sud'),
+  (5, 'DWG KIA', 'Coree du Sud'),
+  (6, 'KT Rolster' , 'Coree du Sud'),
+  (7, 'Kwangdong Freecs' , 'Coree du Sud'),
+  (8, 'Nogshim RedForce' , 'Coree du Sud'),
+  (9, 'Fredit BRION' , 'Coree du Sud'),
+  (10, 'Hanwha Life Esports' , 'Coree du Sud');
 
 INSERT INTO role VALUES 
   (1, 'assassins'),

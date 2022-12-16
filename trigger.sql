@@ -9,7 +9,7 @@ CREATE OR REPLACE FUNCTION ajout_equipe()
 RETURNS trigger 
 as $$ 
 BEGIN 
-  if (new.pays_equipe) <> 'South Korea' THEN 
+  if (new.pays_equipe) <> 'Coree du Sud' THEN 
     raise exception 'Cette équipe n est pas coréenne : elle ne peut pas jouer' ; 
   END IF ; 
 
@@ -27,62 +27,55 @@ execute procedure ajout_equipe() ;
 
 
 
+
 ------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------
 
 
 -- Trigger qui vérifie si le joueur ajouté : 
 -- - Possède un pseudo valide ( non utilisé par les autres joueurs ) 
--- - Possède un rôle qui existe dans la table role 
+-- - Possède un rôle qui existe dans la table rôle 
 -- - Appartient à une équipe (qui doit être existante) 
+-- Est ce que je rajoute la condition : que l'équipe auxquel appartient le joueur n'est pas déjà au max des 5 joueurs ? 
 
--- NE FONCTIONNE PAS !! 
 
--- Trigger qui vérifie que l'équipe insérée soit bien une équipe Coréenne
+
 CREATE OR REPLACE FUNCTION ajout_joueur() 
 RETURNS trigger 
 as $$ 
 DECLARE 
-    mon_curseur cursor for select pseudo_joueur, id_role, id_equipe from joueur ; 
+    mon_curseur_pseudo_joueur cursor for select pseudo_joueur from joueur ; 
     v_pseudo  joueur.pseudo_joueur%TYPE; 
-    v_id_role joueur.id_role%TYPE ; 
-    v_id_equipe joueur.id_equipe%TYPE ; 
-
-    role_existe INT ; -- 1 -> le role existe / 0 sinon
-    equipe_existe INT ; -- 1 -> le role existe / 0 sinon
 
 BEGIN 
 
-  open mon_curseur;  
-  role_existe = 0 ; 
-  equipe_existe = 0 ;           
-  
+  open mon_curseur_pseudo_joueur;  
+   
   LOOP 
-  FETCH mon_curseur INTO v_pseudo, v_id_role, v_id_equipe ;
+  FETCH mon_curseur_pseudo_joueur INTO v_pseudo ;
   EXIT WHEN NOT FOUND; 
-  if new.pseudo_joueur LIKE v_pseudo THEN 
-    raise notice 'Le joueur ne peut avoir le même pseudo qu un joueur déjà existant' ;
-  END IF ; 
-  
-  IF new.id_role = v_id_role THEN 
-    role_existe = 1 ; 
-  END IF;
-  
-  IF new.id_equipe = v_id_equipe THEN 
-    equipe_existe = 1 ;
-  END IF; 
-  END LOOP ; 
 
-  IF (role_existe = 1) AND (equipe_existe = 1) THEN
-    RETURN new ;
-  ELSE
-    raise notice 'Vous ne pouvez pas insérer ce tuple' ;
+  if new.pseudo_joueur LIKE v_pseudo THEN 
+    raise exception 'Le joueur ne peut avoir le même pseudo qu un joueur déjà existant' ;
   END IF ; 
+  END LOOP ; 
+  close mon_curseur_pseudo_joueur ; 
+
+  -- Pour éviter de faire des curseurs 
+  if not exists (select * from equipe where id_equipe = new.id_equipe) THEN 
+    raise exception 'Le joueur nappartient pas à une equipe existante' ;
+
+  elsif not exists (select * from role where id_role = new.id_role) THEN 
+    raise exception 'Le joueur ne possede pas un role deja existant' ;
+
+  else 
+    return new ; 
+
+  end if ; 
 
 END; 
 $$
 LANGUAGE plpgsql; 
-
 
 
 
@@ -91,7 +84,7 @@ BEFORE INSERT ON joueur
 FOR EACH ROW 
 execute procedure ajout_joueur() ; 
 
-
+-- TEST
 INSERT INTO joueur values (55,'Faker','test','2004-01-31',1, 1 ) ;
 DELETE FROM joueur where id_joueur = 55 ; 
 
@@ -103,17 +96,70 @@ DELETE FROM joueur where id_joueur = 55 ;
 
 
 
--- Trigger qui vérifie que lorsqu'on ajoute un match : le score n'est pas nul 
--- On ne peut pas avoir de match nul
+-- Trigger qui vérifie que :
+-- Le score ne soit pas nul (il n'existe pas de match nul) 
+-- L'équipe qui joue soit bien une équipe existante
+-- Que les équipes n'ont pas déjà joué le même match 
+-- Que la date du match soit bien comprise entre le ... et ... (règlement imposé) (pas encore fait)
+
 CREATE OR REPLACE FUNCTION ajout_match() 
 RETURNS trigger 
 as $$ 
+DECLARE 
+  mon_curseur_equipe cursor for select id_equipe from equipe ;
+  mon_curseur_match cursor for select id_equipe_1, id_equipe_2 from match ;
+
+  id_equipe_match_deja_joue_1 INT ; 
+  id_equipe_match_deja_joue_2 INT ; 
+
+  equipe_existe1 boolean := FALSE; 
+  equipe_existe2 boolean := FALSE; 
+  indice_equipe INT ; 
+  
 BEGIN 
+  open mon_curseur_equipe;
+  open mon_curseur_match;
+
+
+  LOOP 
+  FETCH mon_curseur_equipe INTO indice_equipe ;
+  EXIT WHEN NOT FOUND; 
+
+  -- Test si l'équipe existe
+  if new.id_equipe_1 = indice_equipe  THEN 
+    equipe_existe1 = TRUE ; 
+  END IF; 
+
+  if new.id_equipe_2 = indice_equipe  THEN 
+    equipe_existe2 = TRUE ; 
+  END IF; 
+  END LOOP ;
+  CLOSE mon_curseur_equipe;
+
+
+  LOOP 
+  FETCH mon_curseur_match INTO id_equipe_match_deja_joue_1, id_equipe_match_deja_joue_2 ;
+  EXIT WHEN NOT FOUND; 
+
+  -- Test si le match a déjà été joué
+  IF((new.id_equipe_1 = id_equipe_match_deja_joue_1) AND (new.id_equipe_2 = id_equipe_match_deja_joue_2)) 
+  OR ((new.id_equipe_1 = id_equipe_match_deja_joue_2) AND (new.id_equipe_2 = id_equipe_match_deja_joue_1)) THEN 
+      raise exception 'Le match a deja ete joue' ;
+  END IF ;  
+  END LOOP ;
+  CLOSE mon_curseur_match;
+
+
   if (new.score_equipe_1 = new.score_equipe_2) THEN 
     raise exception 'Il ne peut pas y avoir de match nul' ; 
   END IF ; 
 
-  RETURN new; 
+  if (equipe_existe1 = FALSE) OR (equipe_existe2 = FALSE)  THEN 
+    raise exception 'Une des equipes nexiste pas' ; 
+  END IF ;
+
+  RETURN new ;
+
 
 END; 
 $$
@@ -125,9 +171,12 @@ BEFORE INSERT ON match
 FOR EACH ROW 
 execute procedure ajout_match() ; 
 
-INSERT INTO match VALUES (11,10,5,5,5,'2022-07-25',52) ; 
 
-DELETE FROM MATCH where id_match = 11 ; 
+-- TEST
+INSERT INTO match VALUES (13,2,1,5,3,'2022-07-25',52) ; 
+INSERT INTO match VALUES (13,11,1,5,3,'2022-07-25',52) ;
+INSERT INTO match VALUES (13,11,1,5,5,'2022-07-25',52) ; 
+
 
 
 ------------------------------------------------------------------------------------------------
@@ -153,21 +202,13 @@ DECLARE
   v_nombre_victimes INT ; 
   v_nombre_morts INT ; 
 BEGIN 
-  SELECT nombre_victimes_total, nombre_morts_total INTO v_nombre_victimes, v_nombre_morts 
-  from statistiques_joueurs where id_joueur = new.id_joueur ; 
 
-  IF v_nombre_victimes IS NULL AND v_nombre_victimes IS NULL THEN 
-    INSERT INTO statistiques_joueurs VALUES (new.id_joueur,  new.nombre_kills, new.nombre_morts) ; 
+  if not exists (select * from statistiques_joueurs where id_joueur = new.id_joueur) THEN 
+    INSERT INTO statistiques_joueurs VALUES (new.id_joueur, 0,0) ; 
+  end if ; 
 
-  ELSIF v_nombre_victimes IS NULL AND v_nombre_victimes IS NOT NULL THEN 
-    INSERT INTO statistiques_joueurs VALUES (new.id_joueur,  new.nombre_kills, v_nombre_morts + new.nombre_morts) ; 
-  
-  ELSIF v_nombre_victimes IS NOT NULL AND v_nombre_victimes IS  NULL THEN 
-    INSERT INTO statistiques_joueurs VALUES (new.id_joueur,  v_nombre_victimes + new.nombre_kills , new.nombre_morts ) ; 
-  ELSE 
-    INSERT INTO statistiques_joueurs VALUES (new.id_joueur,  v_nombre_victimes + new.nombre_kills , v_nombre_morts + new.nombre_morts) ; 
-  END IF ; 
-
+  UPDATE statistiques_joueurs SET nombre_victimes_total = nombre_victimes_total+ new.nombre_kills, nombre_morts_total = nombre_morts_total+ new.nombre_morts
+  WHERE id_joueur = new.id_joueur; 
 
   RETURN new; 
 
@@ -185,9 +226,11 @@ execute procedure set_statistiques_joueurs()
 
 
 
+-- TEST
 INSERT INTO statistiques_match (id_equipe, id_joueur, id_match, nombre_kills, nombre_morts)VALUES (1,5, 1, 10, 5 ); 
 INSERT INTO statistiques_match (id_equipe, id_joueur, id_match, nombre_kills, nombre_morts)VALUES (1,4, 1, 15, 12 ); 
 INSERT INTO statistiques_match (id_equipe, id_joueur, id_match, nombre_kills, nombre_morts)VALUES (1,4, 10, 20, 4 ); 
+INSERT INTO statistiques_match (id_equipe, id_joueur, id_match, nombre_kills, nombre_morts)VALUES (8,37, 8, 36, 8 ); 
 
 
 
@@ -197,4 +240,53 @@ INSERT INTO statistiques_match (id_equipe, id_joueur, id_match, nombre_kills, no
 
 
 
+
+
+-- Trigger qui va se déclencher quand on ajoute un match. 
+-- Il va simuler avec un random : le nombre de victimes qu'un joueur peut faire, le nb de morts qu'un joueur peut avoir 
+-- Et le mettre dans la table statistiques matchs. 
+
+-- Il va falloir la rentrer avant set_statistiques_joueurs() MAIS AUSSI avant toutes les insertions 
+
+CREATE OR REPLACE FUNCTION set_statistiques_match() 
+RETURNS trigger 
+as $$ 
+DECLARE 
+    mon_curseur cursor for select joueur.id_joueur, match.id_match, joueur.id_equipe from joueur 
+    inner join match on match.id_equipe_1 = joueur.id_equipe or match.id_equipe_2 = joueur.id_equipe
+    where id_match = new.id_match  order by joueur.id_equipe asc ; 
+
+    
+    v_id_joueur joueur.id_joueur%TYPE; 
+    v_id_equipe joueur.id_equipe%TYPE ; 
+    v_id_match  match.id_match%TYPE; 
+
+BEGIN
+
+  OPEN mon_curseur ; 
+
+  LOOP 
+  FETCH mon_curseur INTO v_id_joueur, v_id_match, v_id_equipe ;
+  EXIT WHEN NOT FOUND; 
+
+  INSERT INTO statistiques_match values (v_id_equipe, v_id_joueur,v_id_match,  floor(random() * 45 + 0),  floor(random() * 45 + 0)) ; 
+
+  END LOOP ;
+
+  RETURN new; 
+
+END; 
+$$
+LANGUAGE plpgsql; 
+
+CREATE TRIGGER set_statistiques_match
+AFTER INSERT ON match
+FOR EACH ROW 
+execute procedure set_statistiques_match()
+;
+
+
+
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
 
