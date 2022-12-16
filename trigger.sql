@@ -207,7 +207,7 @@ BEGIN
     INSERT INTO statistiques_joueurs VALUES (new.id_joueur, 0,0) ; 
   end if ; 
 
-  UPDATE statistiques_joueurs SET nombre_victimes_total = nombre_victimes_total+ new.nombre_kills, nombre_morts_total = nombre_morts_total+ new.nombre_morts
+  UPDATE statistiques_joueurs SET total_victimes = total_victimes+ new.nombre_kills, total_morts = total_morts+ new.nombre_morts
   WHERE id_joueur = new.id_joueur; 
 
   RETURN new; 
@@ -252,7 +252,7 @@ CREATE OR REPLACE FUNCTION set_statistiques_match()
 RETURNS trigger 
 as $$ 
 DECLARE 
-    mon_curseur cursor for select joueur.id_joueur, match.id_match, joueur.id_equipe from joueur 
+    mon_curseur_stats_match cursor for select joueur.id_joueur, match.id_match, joueur.id_equipe from joueur 
     inner join match on match.id_equipe_1 = joueur.id_equipe or match.id_equipe_2 = joueur.id_equipe
     where id_match = new.id_match  order by joueur.id_equipe asc ; 
 
@@ -263,15 +263,17 @@ DECLARE
 
 BEGIN
 
-  OPEN mon_curseur ; 
+  OPEN mon_curseur_stats_match ; 
 
   LOOP 
-  FETCH mon_curseur INTO v_id_joueur, v_id_match, v_id_equipe ;
+  FETCH mon_curseur_stats_match INTO v_id_joueur, v_id_match, v_id_equipe ;
   EXIT WHEN NOT FOUND; 
 
   INSERT INTO statistiques_match values (v_id_equipe, v_id_joueur,v_id_match,  floor(random() * 45 + 0),  floor(random() * 45 + 0)) ; 
 
   END LOOP ;
+
+  CLOSE mon_curseur_stats_match ; 
 
   RETURN new; 
 
@@ -290,3 +292,88 @@ execute procedure set_statistiques_match()
 ------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------
 
+CREATE OR REPLACE FUNCTION update_classement() 
+RETURNS trigger 
+as $$ 
+DECLARE 
+
+  mon_curseur_classement cursor for select * from classement order by points desc; 
+  i int := 1 ; 
+
+
+  v_position INT ; 
+  v_id_equipe INT ; 
+  v_nombre_victoires INT ; 
+  v_nombre_defaites INT ; 
+  v_matchs_joues INT ; 
+  v_points INT ;
+
+
+
+BEGIN 
+  if new.score_equipe_1 > new.score_equipe_2 THEN 
+    -- Victoire equipe 1
+    UPDATE classement SET nombre_victoires = nombre_victoires+ 1, 
+    nombre_defaites = nombre_defaites, 
+    matchs_joues = matchs_joues + 1, 
+    points = points + 3 
+    WHERE id_equipe = new.id_equipe_1 ;
+
+    UPDATE classement SET nombre_victoires = nombre_victoires, 
+    nombre_defaites = nombre_defaites +1, 
+    matchs_joues = matchs_joues + 1, 
+    points = points + 1 
+    WHERE id_equipe = new.id_equipe_2 ;
+
+
+
+  elsif new.score_equipe_1 < new.score_equipe_2 THEN 
+    -- Victoire equipe 2
+    UPDATE classement SET nombre_victoires = nombre_victoires+ 1, 
+    nombre_defaites = nombre_defaites, 
+    matchs_joues = matchs_joues + 1, 
+    points = points + 3 
+    WHERE id_equipe = new.id_equipe_2 ;
+
+    UPDATE classement SET nombre_victoires = nombre_victoires, 
+    nombre_defaites = nombre_defaites +1, 
+    matchs_joues = matchs_joues + 1, 
+    points = points + 1 
+    WHERE id_equipe = new.id_equipe_1 ;
+
+  end if ; 
+
+
+  OPEN mon_curseur_classement ; 
+  LOOP 
+  FETCH mon_curseur_classement INTO v_position, v_id_equipe, v_nombre_victoires, v_nombre_defaites, v_matchs_joues, v_points ;
+  EXIT WHEN NOT FOUND;
+
+  UPDATE classement SET position = i, 
+  id_equipe = v_id_equipe, 
+  nombre_victoires = v_nombre_victoires, 
+  nombre_defaites = v_nombre_defaites, 
+  matchs_joues = v_matchs_joues, 
+  points = v_points 
+  WHERE id_equipe = v_id_equipe ;
+  
+  i = i + 1 ; 
+  END LOOP ;
+
+  CLOSE mon_curseur_classement; 
+
+  RETURN new ; 
+
+
+END; 
+$$
+LANGUAGE plpgsql; 
+
+  
+
+
+CREATE TRIGGER update_classement
+AFTER INSERT ON match
+FOR EACH ROW 
+execute procedure update_classement()
+;
