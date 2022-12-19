@@ -300,7 +300,11 @@ BEGIN
     points = points + 1 
     WHERE id_equipe = new.id_equipe_2 ;
 
-
+    UPDATE classement SET enchainement_victoires = enchainement_victoires + 1
+    WHERE id_equipe = new.id_equipe_1;
+    
+    UPDATE classement SET enchainement_victoires = 0
+    WHERE id_equipe = new.id_equipe_2;
 
   elsif new.score_equipe_1 < new.score_equipe_2 THEN 
     -- Victoire equipe 2
@@ -315,6 +319,12 @@ BEGIN
     matchs_joues = matchs_joues + 1, 
     points = points + 1 
     WHERE id_equipe = new.id_equipe_1 ;
+
+    UPDATE classement SET enchainement_victoires = enchainement_victoires + 1
+    WHERE id_equipe = new.id_equipe_2;
+    
+    UPDATE classement SET enchainement_victoires = 0
+    WHERE id_equipe = new.id_equipe_1;
 
   end if ; 
 
