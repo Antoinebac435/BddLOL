@@ -1,10 +1,4 @@
-Sae lol
 
-------------------------------
--- Trigger de vérification 
--- --------------------------
-
--- Trigger qui vérifie que l'équipe insérée soit bien une équipe Coréenne
 CREATE OR REPLACE FUNCTION ajout_equipe() 
 RETURNS trigger 
 as $$ 
@@ -84,9 +78,6 @@ BEFORE INSERT ON joueur
 FOR EACH ROW 
 execute procedure ajout_joueur() ; 
 
--- TEST
-INSERT INTO joueur values (55,'Faker','test','2004-01-31',1, 1 ) ;
-DELETE FROM joueur where id_joueur = 55 ; 
 
 
 ------------------------------------------------------------------------------------------------
@@ -172,22 +163,12 @@ FOR EACH ROW
 execute procedure ajout_match() ; 
 
 
--- TEST
-INSERT INTO match VALUES (13,2,1,5,3,'2022-07-25',52) ; 
-INSERT INTO match VALUES (13,11,1,5,3,'2022-07-25',52) ;
-INSERT INTO match VALUES (13,11,1,5,5,'2022-07-25',52) ; 
 
 
 
 ------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------
 
-CREATE TABLE statistiques_joueurs 
-(   id_joueur INTEGER,
-    nombre_victimes_total INT, 
-    nombre_morts_total INT
-
-);
 
 
 
@@ -225,12 +206,6 @@ execute procedure set_statistiques_joueurs()
 ;
 
 
-
--- TEST
-INSERT INTO statistiques_match (id_equipe, id_joueur, id_match, nombre_kills, nombre_morts)VALUES (1,5, 1, 10, 5 ); 
-INSERT INTO statistiques_match (id_equipe, id_joueur, id_match, nombre_kills, nombre_morts)VALUES (1,4, 1, 15, 12 ); 
-INSERT INTO statistiques_match (id_equipe, id_joueur, id_match, nombre_kills, nombre_morts)VALUES (1,4, 10, 20, 4 ); 
-INSERT INTO statistiques_match (id_equipe, id_joueur, id_match, nombre_kills, nombre_morts)VALUES (8,37, 8, 36, 8 ); 
 
 
 
