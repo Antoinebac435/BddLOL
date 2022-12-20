@@ -62,6 +62,7 @@ CREATE TABLE personnage_fictif
     FOREIGN KEY(id_role) REFERENCES role(id_role)
   );
 
+
 DROP TABLE IF EXISTS avoir_penalite CASCADE;
 CREATE TABLE avoir_penalite
   (
@@ -103,13 +104,7 @@ CREATE TABLE classement
   );
   
   
-DROP TABLE IF EXISTS classement_meilleurs_tueurs CASCADE;
-CREATE TABLE classement_meilleurs_tueurs
-  (
-    id_joueur         INTEGER NOT NULL,
-    id_equipe        INTEGER NOT NULL,
-    nombre_de_victimes INTEGER NOT NULL
-  );
+
  
 DROP TABLE IF EXISTS statistiques_joueurs CASCADE;
 CREATE TABLE statistiques_joueurs
@@ -120,12 +115,7 @@ CREATE TABLE statistiques_joueurs
   );
 
 
-DROP TABLE IF EXISTS champions  CASCADE;
-CREATE TABLE champions (
-   id_champ INTEGER primary key ,
-   nom varchar(255),
-   role varchar(255)
-);
+
 
 DROP TABLE IF EXISTS joueur_exclu  CASCADE;
 CREATE TABLE joueur_exclu (
@@ -133,6 +123,16 @@ CREATE TABLE joueur_exclu (
    type_exclusion INT
 
 );
+
+
+
+DROP TABLE IF EXISTS classement_meilleur_joueur CASCADE;
+CREATE TABLE classement_meilleur_joueur
+  (
+    id_joueur      INT,
+    nom_joueur     VARCHAR(100) NOT NULL,
+    nombre_victime INT
+  );
 
 
 
@@ -240,62 +240,9 @@ INSERT INTO classement VALUES
   (10,10,0,0,0,0,0) ; 
 
 
-INSERT INTO statistiques_joueurs VALUES
-  (1,0,0), 
-  (2,0,0), 
-  (3,0,0), 
-  (4,0,0), 
-  (5,0,0), 
-  (6,0,0), 
-  (7,0,0), 
-  (8,0,0), 
-  (9,0,0), 
-  (10,0,0), 
-  (11,0,0), 
-  (12,0,0), 
-  (13,0,0), 
-  (14,0,0), 
-  (15,0,0), 
-  (16,0,0), 
-  (17,0,0), 
-  (18,0,0), 
-  (19,0,0), 
-  (20,0,0), 
-  (21,0,0), 
-  (22,0,0), 
-  (23,0,0), 
-  (24,0,0), 
-  (25,0,0), 
-  (26,0,0), 
-  (27,0,0), 
-  (28,0,0), 
-  (29,0,0), 
-  (30,0,0), 
-  (31,0,0), 
-  (32,0,0), 
-  (33,0,0), 
-  (34,0,0), 
-  (35,0,0), 
-  (36,0,0), 
-  (37,0,0), 
-  (38,0,0), 
-  (39,0,0), 
-  (40,0,0), 
-  (41,0,0), 
-  (42,0,0), 
-  (43,0,0), 
-  (44,0,0), 
-  (45,0,0), 
-  (46,0,0), 
-  (47,0,0), 
-  (48,0,0), 
-  (49,0,0), 
-  (50,0,0) ;
 
 
-
-
-INSERT INTO champions (id_champ , nom, role) VALUES
+INSERT INTO personnage_fictif  VALUES
 (1,'Jax','TOP'),
 (2,'Sona','SUP'),
 (3,'Tristana','ADC'),
@@ -490,3 +437,56 @@ INSERT INTO match VALUES
   (44,8,10,2,4,'17/11/2022',68), 
 
   (45,9,10,5,0,'09/11/2022',60) ;
+
+  
+INSERT INTO statistiques_joueurs VALUES
+  (1,0,0), 
+  (2,0,0), 
+  (3,0,0), 
+  (4,0,0), 
+  (5,0,0), 
+  (6,0,0), 
+  (7,0,0), 
+  (8,0,0), 
+  (9,0,0), 
+  (10,0,0), 
+  (11,0,0), 
+  (12,0,0), 
+  (13,0,0), 
+  (14,0,0), 
+  (15,0,0), 
+  (16,0,0), 
+  (17,0,0), 
+  (18,0,0), 
+  (19,0,0), 
+  (20,0,0), 
+  (21,0,0), 
+  (22,0,0), 
+  (23,0,0), 
+  (24,0,0), 
+  (25,0,0), 
+  (26,0,0), 
+  (27,0,0), 
+  (28,0,0), 
+  (29,0,0), 
+  (30,0,0), 
+  (31,0,0), 
+  (32,0,0), 
+  (33,0,0), 
+  (34,0,0), 
+  (35,0,0), 
+  (36,0,0), 
+  (37,0,0), 
+  (38,0,0), 
+  (39,0,0), 
+  (40,0,0), 
+  (41,0,0), 
+  (42,0,0), 
+  (43,0,0), 
+  (44,0,0), 
+  (45,0,0), 
+  (46,0,0), 
+  (47,0,0), 
+  (48,0,0), 
+  (49,0,0), 
+  (50,0,0) ;
