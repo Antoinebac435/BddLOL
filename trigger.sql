@@ -1,4 +1,3 @@
-
 CREATE OR REPLACE FUNCTION ajout_equipe() 
 RETURNS trigger 
 as $$ 
@@ -18,8 +17,6 @@ CREATE TRIGGER ajout_equipe
 BEFORE INSERT ON equipe
 FOR EACH ROW 
 execute procedure ajout_equipe() ; 
-
-
 
 
 
@@ -273,10 +270,8 @@ CREATE OR REPLACE FUNCTION update_classement()
 RETURNS trigger 
 as $$ 
 DECLARE 
-
   mon_curseur_classement cursor for select * from classement order by points desc; 
   i int := 1 ; 
-
 
   v_position INT ; 
   v_id_equipe INT ; 
@@ -284,7 +279,6 @@ DECLARE
   v_nombre_defaites INT ; 
   v_matchs_joues INT ; 
   v_points INT ;
-
 
 
 BEGIN 
@@ -364,3 +358,144 @@ AFTER INSERT ON match
 FOR EACH ROW 
 execute procedure update_classement()
 ;
+
+
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+
+
+
+CREATE OR REPLACE FUNCTION penalite_classement() 
+RETURNS trigger 
+as $$ 
+DECLARE 
+curseur_update cursor for select * from classement order by points desc; 
+  i int := 1 ; 
+
+  v_position INT ; 
+  v_id_equipe INT ; 
+  v_nombre_victoires INT ; 
+  v_nombre_defaites INT ; 
+  v_matchs_joues INT ; 
+  v_points INT ;
+
+  nom_joueur_exclu VARCHAR ; 
+  nombre_insulte INT ; 
+BEGIN 
+
+
+  if new.id_penalite = 1 THEN  
+    UPDATE classement SET points = points - 1 
+      WHERE id_equipe = new.id_equipe ;
+
+  elsif new.id_penalite = 2 THEN 
+   UPDATE classement SET points = points - 2 
+      WHERE id_equipe = new.id_equipe ;
+
+  elsif new.id_penalite = 3 THEN 
+   UPDATE classement SET points = points - 3 
+      WHERE id_equipe = new.id_equipe ;
+      
+  elsif new.id_penalite = 4 THEN 
+    nom_joueur_exclu = (select nom_joueur from joueur where id_joueur = new.id_joueur) ;
+    INSERT INTO joueur_exclu values (nom_joueur_exclu, new.id_penalite) ; 
+
+    DELETE FROM   avoir_penalite where id_joueur = new.id_joueur ; 
+    DELETE FROM statistiques_match where id_joueur = new.id_joueur ; 
+    DELETE FROM statistiques_joueurs where id_joueur = new.id_joueur ; 
+    DELETE FROM joueur where id_joueur = new.id_joueur ; 
+
+
+  elsif new.id_penalite = 5 THEN 
+    nombre_insulte = (select count(*) from avoir_penalite where id_equipe = new.id_equipe) ; 
+
+    if nombre_insulte = 5 THEN 
+       UPDATE classement SET points = points - 5 
+        WHERE id_equipe = new.id_equipe ;
+    end if ; 
+
+
+  end if ; 
+
+
+  OPEN curseur_update ; 
+    LOOP 
+    FETCH curseur_update INTO v_position, v_id_equipe, v_nombre_victoires, v_nombre_defaites, v_matchs_joues, v_points ;
+    EXIT WHEN NOT FOUND;
+
+    UPDATE classement SET position = i, 
+    id_equipe = v_id_equipe, 
+    nombre_victoires = v_nombre_victoires, 
+    nombre_defaites = v_nombre_defaites, 
+    matchs_joues = v_matchs_joues, 
+    points = v_points 
+    WHERE id_equipe = v_id_equipe ;
+    
+    i = i + 1 ; 
+    END LOOP ;
+
+    CLOSE curseur_update; 
+
+    RETURN new  ; 
+
+
+END; 
+$$
+LANGUAGE plpgsql; 
+
+
+
+CREATE TRIGGER penalite_classement
+AFTER INSERT ON avoir_penalite 
+FOR EACH ROW 
+execute procedure penalite_classement()
+;
+
+
+
+
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+
+
+CREATE OR REPLACE FUNCTION classement_meilleur_joueur() 
+RETURNS trigger 
+as $$ 
+DECLARE 
+  curseur_meilleur_joueur cursor for select id_joueur,  total_victimes from statistiques_joueurs order by total_victimes desc limit 10; 
+
+  v_id_meilleur_joueur INT ; 
+  v_total_victimes_meilleur_joueur INT ; 
+  v_nom_meilleur_joueur VARCHAR ; 
+
+
+BEGIN 
+
+  DELETE FROM classement_meilleur_joueur ; 
+
+  OPEN curseur_meilleur_joueur ; 
+  LOOP 
+  FETCH curseur_meilleur_joueur INTO v_id_meilleur_joueur, v_total_victimes_meilleur_joueur ;
+  EXIT WHEN NOT FOUND;
+
+  v_nom_meilleur_joueur = (select nom_joueur from joueur where id_joueur =v_id_meilleur_joueur ) ; 
+  INSERT INTO classement_meilleur_joueur VALUES (v_id_meilleur_joueur, v_nom_meilleur_joueur, v_total_victimes_meilleur_joueur ) ; 
+
+  end loop ; 
+  close curseur_meilleur_joueur ; 
+  return new; 
+
+
+
+END; 
+$$
+LANGUAGE plpgsql; 
+
+CREATE TRIGGER classement_meilleur_joueur
+AFTER INSERT ON statistiques_joueurs 
+FOR EACH ROW 
+execute procedure classement_meilleur_joueur()
+;
+
+
+
