@@ -324,7 +324,7 @@ BEGIN
 
   end if ; 
 
-
+  -- Mis à jour du classement 
   OPEN mon_curseur_classement ; 
   LOOP 
   FETCH mon_curseur_classement INTO v_position, v_id_equipe, v_nombre_victoires, v_nombre_defaites, v_matchs_joues, v_points ;
@@ -417,7 +417,7 @@ BEGIN
 
   end if ; 
 
-
+  -- Mis à jour du classement 
   OPEN curseur_update ; 
     LOOP 
     FETCH curseur_update INTO v_position, v_id_equipe, v_nombre_victoires, v_nombre_defaites, v_matchs_joues, v_points ;
@@ -496,6 +496,66 @@ AFTER INSERT ON statistiques_joueurs
 FOR EACH ROW 
 execute procedure classement_meilleur_joueur()
 ;
+
+
+
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+
+
+-- La complexité de cette fonction est que nous voulons remplacer un joueur (qui a été exclu) mais que nous n'avons pas l'id de ce joueur. 
+-- Il faut donc chercher un id valable dans une boucle loop, pour insérer correctement le remplaçant avec un id valable. 
+
+CREATE OR REPLACE FUNCTION ajout_remplaçant(nom_remplacant varchar, pseudo_remplacant VARCHAR, date_naissance_remplacant DATE,  
+id_role_remplacant INT, equipe_du_remplacant INT) 
+RETURNS VOID
+as $$ 
+DECLARE 
+  nombre_joueur_equipe INT ;  
+  indice_boucle INT; 
+  joueur_ajoute boolean := False ; 
+  valeur INT ; 
+
+  indice_depart INT := (select id_joueur from joueur where id_equipe = equipe_du_remplacant order by id_joueur asc limit 1) ; 
+
+
+BEGIN 
+
+  nombre_joueur_equipe = (select count(*) from joueur where id_equipe = equipe_du_remplacant) ; 
+
+  if nombre_joueur_equipe = 5 THEN 
+    raise exception 'L equipe est déjà pleine, vous ne pouvez pas ajouter de joueurs' ; 
+  else 
+    indice_boucle = indice_depart ; 
+    loop 
+    EXIT when indice_boucle > indice_depart +5 ; 
+
+    if not exists (select id_joueur from joueur where  id_joueur = indice_boucle) THEN 
+      INSERT INTO joueur values ( indice_boucle, pseudo_remplacant,nom_remplacant, date_naissance_remplacant, id_role_remplacant , equipe_du_remplacant) ; 
+      joueur_ajoute = True ;
+    else 
+      indice_boucle = indice_boucle + 1 ; 
+    end if ; 
+    end loop ; 
+  end if ;
+
+
+  -- Le joueur manquant se trouvait au debut 
+  if joueur_ajoute = False THEN 
+    valeur = (select id_joueur from joueur where id_equipe = equipe_du_remplacant order by id_joueur asc limit 1) -1  ; 
+    INSERT INTO joueur values ( valeur, pseudo_remplacant,nom_remplacant, date_naissance_remplacant, id_role_remplacant , equipe_du_remplacant) ; 
+
+  end if ; 
+
+
+
+END; 
+$$
+LANGUAGE plpgsql; 
+
+
+
+
 
 
 
