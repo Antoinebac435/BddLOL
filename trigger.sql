@@ -1,3 +1,10 @@
+------------------------------------------------------------------------------------------------
+---- NOM : ajout_equipe                                                                     ----
+---- DESCRIPTION : Ce trigger va se déclancher lorsque l'on va vouloir ajouter une équipe.  ----
+---- VERIFICATION : Il va vérifier que l'équipe est coréenne (réglement du jeu).            ----
+------------------------------------------------------------------------------------------------
+
+
 CREATE OR REPLACE FUNCTION ajout_equipe() 
 RETURNS trigger 
 as $$ 
@@ -18,19 +25,24 @@ BEFORE INSERT ON equipe
 FOR EACH ROW 
 execute procedure ajout_equipe() ; 
 
+------------------------------------------------------------------------------------------------
+
+
+
+
+
 
 
 
 ------------------------------------------------------------------------------------------------
+---- NOM : ajout_joueur                                                                     ----
+---- DESCRIPTION : Ce trigger va se déclancher lorsque l'on va vouloir ajouter un joueur .  ----
+----                                                                                                ----
+---- VERIFICATION : Un joueur doit                                                          ----
+----                  -- Posséder un pseudo valide ( non utilisé par les autres joueurs )   ----
+----                  -- Posséder un rôle qui existe dans la table rôle                     ----
+----                  -- Appartenir à une équipe (qui doit être existante)                  ----
 ------------------------------------------------------------------------------------------------
-
-
--- Trigger qui vérifie si le joueur ajouté : 
--- - Possède un pseudo valide ( non utilisé par les autres joueurs ) 
--- - Possède un rôle qui existe dans la table rôle 
--- - Appartient à une équipe (qui doit être existante) 
--- Est ce que je rajoute la condition : que l'équipe auxquel appartient le joueur n'est pas déjà au max des 5 joueurs ? 
-
 
 
 CREATE OR REPLACE FUNCTION ajout_joueur() 
@@ -80,17 +92,26 @@ execute procedure ajout_joueur() ;
 
 
 ------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------
 
 
 
 
 
--- Trigger qui vérifie que :
--- Le score ne soit pas nul (il n'existe pas de match nul) 
--- L'équipe qui joue soit bien une équipe existante
--- Que les équipes n'ont pas déjà joué le même match 
--- Que la date du match soit bien comprise entre le ... et ... (règlement imposé) (pas encore fait)
+
+
+
+
+
+--------------------------------------------------------------------------------------------------
+---- NOM : ajout_match                                                                        ----
+---- DESCRIPTION : Ce trigger va se déclancher lorsque l'on va ajouter un match.              ----
+----                                                                                          ----
+---- VERIFICATION :                                                                           ----
+----            -- Les scores ne doivent pas être égaux (il n'existe pas de match nul)        ----
+----            -- Les équipes qui jouent doivent être des équipes existantes                 ----
+----           -- Les équipes qui jouent ne doivent pas déjà avoir joué l'une contre l'autre  ----
+--------------------------------------------------------------------------------------------------
+
 
 CREATE OR REPLACE FUNCTION ajout_match() 
 RETURNS trigger 
@@ -165,15 +186,20 @@ execute procedure ajout_match() ;
 
 
 
+
 ------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------
 
 
 
 
--- Trigger qui va remplir la table statistiques match à chaque fois que l'on va ajouté 
--- un tuple dans match. 
--- Pour cela on va le nombre de victimes réalisés et le nombre de morts ; seront inscrits aléatoirement 
+
+
+--------------------------------------------------------------------------------------------------------
+---- NOM : set_statistiques_joueurs                                                                 ----
+---- DESCRIPTION : Ce trigger va modifier les statistiques du joueur à chaque fois que              ----
+---- celui-ci joue. C'est à dire, lorsqu'il va faire un match, et marquer (faire des victimes),     ----
+---- son nombre total de victimes va être modifié. De même pour son nombre total de morts.          ----
+--------------------------------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION set_statistiques_joueurs() 
 RETURNS trigger 
@@ -209,18 +235,22 @@ execute procedure set_statistiques_joueurs()
 
 
 ------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------
 
 
 
 
 
 
--- Trigger qui va se déclencher quand on ajoute un match. 
--- Il va simuler avec un random : le nombre de victimes qu'un joueur peut faire, le nb de morts qu'un joueur peut avoir 
--- Et le mettre dans la table statistiques matchs. 
 
--- Il va falloir la rentrer avant set_statistiques_joueurs() MAIS AUSSI avant toutes les insertions 
+
+
+
+--------------------------------------------------------------------------------------------------------
+---- NOM : set_statistiques_match                                                                   ----
+---- DESCRIPTION : Ce trigger va simuler les statistiques d'un joueur, ses actions lorsqu'un        ----
+---- match est joué :                                                                               ----
+---- C'est à dire son nombre de victimes, le nombre de fois où il est mort...                       ----
+--------------------------------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION set_statistiques_match() 
 RETURNS trigger 
@@ -243,6 +273,7 @@ BEGIN
   FETCH mon_curseur_stats_match INTO v_id_joueur, v_id_match, v_id_equipe ;
   EXIT WHEN NOT FOUND; 
 
+  -- Simule des statistiques (valeurs entre 0 et 45)
   INSERT INTO statistiques_match values (v_id_equipe, v_id_joueur,v_id_match,  floor(random() * 45 + 0),  floor(random() * 45 + 0)) ; 
 
   END LOOP ;
@@ -263,8 +294,26 @@ execute procedure set_statistiques_match()
 
 
 
+
+
+
 ------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+--------------------------------------------------------------------------------------------------------
+---- NOM : update_classement                                                                        ----
+---- DESCRIPTION : Ce trigger va modifier le classement à chaque fois qu'un match est joué.         ----
+----                                                                                                ----
+---- DIFFICULTE : Les enchainements de victoires doivent être pris en compte.                       ----
+---- On doit faire un curseur/loop à la fin des updates, pour réactualiser le classement.           ----
+--------------------------------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION update_classement() 
 RETURNS trigger 
@@ -282,49 +331,46 @@ DECLARE
 
 
 BEGIN 
+
+  -- Victoire équipe 1
   if new.score_equipe_1 > new.score_equipe_2 THEN 
-    -- Victoire equipe 1
     UPDATE classement SET nombre_victoires = nombre_victoires+ 1, 
     nombre_defaites = nombre_defaites, 
     matchs_joues = matchs_joues + 1, 
-    points = points + 3 
+    points = points + 3 , 
+    enchainement_victoires = enchainement_victoires + 1
     WHERE id_equipe = new.id_equipe_1 ;
 
     UPDATE classement SET nombre_victoires = nombre_victoires, 
     nombre_defaites = nombre_defaites +1, 
     matchs_joues = matchs_joues + 1, 
-    points = points + 1 
+    points = points + 1, 
+    enchainement_victoires = 0
     WHERE id_equipe = new.id_equipe_2 ;
 
-    UPDATE classement SET enchainement_victoires = enchainement_victoires + 1
-    WHERE id_equipe = new.id_equipe_1;
-    
-    UPDATE classement SET enchainement_victoires = 0
-    WHERE id_equipe = new.id_equipe_2;
 
+
+  -- Victoire équipe 2
   elsif new.score_equipe_1 < new.score_equipe_2 THEN 
-    -- Victoire equipe 2
     UPDATE classement SET nombre_victoires = nombre_victoires+ 1, 
     nombre_defaites = nombre_defaites, 
     matchs_joues = matchs_joues + 1, 
-    points = points + 3 
+    points = points + 3, 
+    enchainement_victoires = enchainement_victoires + 1
     WHERE id_equipe = new.id_equipe_2 ;
 
     UPDATE classement SET nombre_victoires = nombre_victoires, 
     nombre_defaites = nombre_defaites +1, 
     matchs_joues = matchs_joues + 1, 
-    points = points + 1 
+    points = points + 1, 
+     enchainement_victoires = 0
     WHERE id_equipe = new.id_equipe_1 ;
-
-    UPDATE classement SET enchainement_victoires = enchainement_victoires + 1
-    WHERE id_equipe = new.id_equipe_2;
-    
-    UPDATE classement SET enchainement_victoires = 0
-    WHERE id_equipe = new.id_equipe_1;
 
   end if ; 
 
-  -- Mis à jour du classement 
+
+
+  -- Mis à jour du classement après les updates
   OPEN mon_curseur_classement ; 
   LOOP 
   FETCH mon_curseur_classement INTO v_position, v_id_equipe, v_nombre_victoires, v_nombre_defaites, v_matchs_joues, v_points ;
@@ -360,8 +406,34 @@ execute procedure update_classement()
 ;
 
 
+
+
+
+
 ------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------------------------------------------------------
+---- NOM : penalite_classement                                                                                       ----
+---- DESCRIPTION : Ce trigger va modifier le classement à chaque fois qu'un joueur a commit une faute                ----
+----    -	Retard = -1 points à l’équipe.                                                                             ----
+----    -	Absence = -2 points à l’équipe.                                                                            ----
+----    -	Tricherie = -3 points à l’équipe.                                                                          ----
+----    -	Insultes = -5 points à l’équipe si elle comporte un total de 5 joueurs ou plus, ayant réalisé cette faute. ----
+----    -	Dopage = Exclusion du joueur.                                                                              ----
+----                                                                                                                 ----
+---- DIFFICULTE :                                                                                                    ----
+---- Chaque type d'insulte à dû être analysé car les sanctions n'étaient pas les mêmes.                              ----
+---- Après chaque update, le classement doit être re-analysé et modifié (puisqu'on a modifié les points)             ----
+-------------------------------------------------------------------------------------------------------------------------
+
 
 
 
@@ -381,37 +453,62 @@ curseur_update cursor for select * from classement order by points desc;
 
   nom_joueur_exclu VARCHAR ; 
   nombre_insulte INT ; 
+  nom_penalite VARCHAR ; 
+  nombre_point_actuel INT ; 
 BEGIN 
 
+  nom_penalite = (select type_penalite from penalite where id_penalite =  new.id_penalite ) ; 
+  nombre_point_actuel  = (select points from classement where id_equipe  = new.id_equipe)  ; 
 
-  if new.id_penalite = 1 THEN  
+  if(nom_penalite = 'retard') THEN  
+    if (nombre_point_actuel - 1) < 0 THEN 
+      UPDATE classement SET points = 0
+      WHERE id_equipe = new.id_equipe ;
+    else 
     UPDATE classement SET points = points - 1 
       WHERE id_equipe = new.id_equipe ;
+    end if ; 
 
-  elsif new.id_penalite = 2 THEN 
-   UPDATE classement SET points = points - 2 
-      WHERE id_equipe = new.id_equipe ;
+  elsif(nom_penalite = 'absence' ) THEN 
+    if (nombre_point_actuel - 2) < 0 THEN 
+        UPDATE classement SET points = 0
+        WHERE id_equipe = new.id_equipe ;
+      else 
+      UPDATE classement SET points = points - 2 
+        WHERE id_equipe = new.id_equipe ;
+      end if ; 
 
-  elsif new.id_penalite = 3 THEN 
-   UPDATE classement SET points = points - 3 
-      WHERE id_equipe = new.id_equipe ;
-      
-  elsif new.id_penalite = 4 THEN 
+   
+  elsif(nom_penalite = 'tricherie' ) THEN 
+    if (nombre_point_actuel - 3) < 0 THEN 
+          UPDATE classement SET points = 0
+          WHERE id_equipe = new.id_equipe ;
+        else 
+        UPDATE classement SET points = points - 3 
+          WHERE id_equipe = new.id_equipe ;
+        end if ; 
+
+  elsif(nom_penalite = 'dopage') THEN 
     nom_joueur_exclu = (select nom_joueur from joueur where id_joueur = new.id_joueur) ;
     INSERT INTO joueur_exclu values (nom_joueur_exclu, new.id_penalite) ; 
 
-    DELETE FROM   avoir_penalite where id_joueur = new.id_joueur ; 
+    DELETE FROM avoir_penalite where id_joueur = new.id_joueur ; 
     DELETE FROM statistiques_match where id_joueur = new.id_joueur ; 
     DELETE FROM statistiques_joueurs where id_joueur = new.id_joueur ; 
     DELETE FROM joueur where id_joueur = new.id_joueur ; 
 
 
-  elsif new.id_penalite = 5 THEN 
+  elsif(nom_penalite = 'insultes' ) THEN 
     nombre_insulte = (select count(*) from avoir_penalite where id_equipe = new.id_equipe) ; 
 
     if nombre_insulte = 5 THEN 
-       UPDATE classement SET points = points - 5 
-        WHERE id_equipe = new.id_equipe ;
+        if (nombre_point_actuel - 5) < 0 THEN 
+          UPDATE classement SET points = 0
+          WHERE id_equipe = new.id_equipe ;
+        else 
+        UPDATE classement SET points = points - 5 
+          WHERE id_equipe = new.id_equipe ;
+        end if ; 
     end if ; 
 
 
@@ -454,8 +551,29 @@ execute procedure penalite_classement()
 
 
 
+
 ------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+--------------------------------------------------------------------------------------------------------
+---- NOM : classement_meilleur_joueur                                                               ----
+---- DESCRIPTION : Ce trigger va modifier le classement des meilleurs joueurs                       ----    
+---- Le classement contient les 10 meilleurs joueurs.                                               ----
+---- Les meilleurs joueurs sont ceux qui ont tué le plus de personnes.                              ----
+----                                                                                                ----
+---- DIFFICULTE :                                                                                   ----
+---- Les statistiques des joueurs évoluent trop aléatoirement pour faire des updates.               ----    
+---- Nous avons donc fait le choix de supprimer tous les tuples du classement à chaque              ----
+---- modification -> pour par la suite, réinsérer les vrais meilleurs joueurs (avec modification)   ----
+---- à l'aide d'un select avec un order by et une limite                                            ----
+--------------------------------------------------------------------------------------------------------
 
 
 CREATE OR REPLACE FUNCTION classement_meilleur_joueur() 
@@ -499,12 +617,35 @@ execute procedure classement_meilleur_joueur()
 
 
 
-------------------------------------------------------------------------------------------------
+
+
+
+
 ------------------------------------------------------------------------------------------------
 
 
--- La complexité de cette fonction est que nous voulons remplacer un joueur (qui a été exclu) mais que nous n'avons pas l'id de ce joueur. 
--- Il faut donc chercher un id valable dans une boucle loop, pour insérer correctement le remplaçant avec un id valable. 
+
+
+
+
+
+
+
+--------------------------------------------------------------------------------------------------------
+---- NOM : ajout_remplaçant                                                                         ----
+---- DESCRIPTION : Cette fonction permet de rajouter un remplaçant ( dans le cas où un joueur       ----
+---- a été exclu de la compétition).                                                                ----
+----                                                                                                ----
+---- VERIFICATION :                                                                                 ----
+----    -- Une équipe ne doit pas être pleine (5 joueurs max)                                       ----
+----                                                                                                ----
+---- DIFFICULTE :                                                                                   ----
+---- Nous devons chercher l'identifiant disponible dans l'équipe pour l'attribuer au                ----
+---- joueur remplaçant.                                                                             ----
+---- Pour cela, on va parcourir chaque identifiant des joueurs de l'équipe                          ----
+---- Et insérer le joueur remplaçant, et lui attribuer un id,  dès que l'id est disponible          ----
+--------------------------------------------------------------------------------------------------------
+
 
 CREATE OR REPLACE FUNCTION ajout_remplaçant(nom_remplacant varchar, pseudo_remplacant VARCHAR, date_naissance_remplacant DATE,  
 id_role_remplacant INT, equipe_du_remplacant INT) 
@@ -552,10 +693,6 @@ BEGIN
 END; 
 $$
 LANGUAGE plpgsql; 
-
-
-
-
 
 
 

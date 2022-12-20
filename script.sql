@@ -486,12 +486,8 @@ INSERT INTO statistiques_joueurs VALUES
 
 
 INSERT INTO avoir_penalite VALUES
-  (1,2,1),
-  (1,3,3),
   (3,12,1),
   (6,30,5),
-  (7,35,1),
-  (8,39,5),
   (9,41,4), 
   (2,6,5),
   (2,7,5),
