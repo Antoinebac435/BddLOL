@@ -127,6 +127,12 @@ CREATE TABLE champions (
    role varchar(255)
 );
 
+DROP TABLE IF EXISTS joueur_exclu  CASCADE;
+CREATE TABLE joueur_exclu (
+   nom_joueur_exclu varchar(255) ,
+   type_exclusion INT
+
+);
 
 
 
