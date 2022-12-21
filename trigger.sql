@@ -110,7 +110,6 @@ execute procedure ajout_joueur() ;
 ----            -- Les scores ne doivent pas être égaux (il n'existe pas de match nul)        ----
 ----            -- Les équipes qui jouent doivent être des équipes existantes                 ----
 ----           -- Les équipes qui jouent ne doivent pas déjà avoir joué l'une contre l'autre  ----
-----            -- Les équipes ne peuvent pas jouer contre elles-mêmes                        ----
 --------------------------------------------------------------------------------------------------
 
 
@@ -161,9 +160,6 @@ BEGIN
   END LOOP ;
   CLOSE mon_curseur_match;
 
-  IF (new.id_equipe_1 = new.id_equipe_2) THEN
-    RAISE EXCEPTION 'Une équipe ne peut pas jouer contre elle-même';
-  END IF;
 
   if (new.score_equipe_1 = new.score_equipe_2) THEN 
     raise exception 'Il ne peut pas y avoir de match nul' ; 
