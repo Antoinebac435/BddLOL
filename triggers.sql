@@ -60,8 +60,6 @@ BEGIN
   if not exists (select * from equipe where id_equipe = new.id_equipe) THEN 
     raise exception 'Le joueur nappartient pas à une equipe existante' ;
 
-  elsif ((select count(*) from joueur where id_equipe = new.id_equipe) = 5) THEN 
-    raise exception 'Impossible d ajouter ce joueur à cette equipe : elle est peine' ;
 
   else 
     return new ; 
