@@ -25,6 +25,13 @@ BEFORE INSERT ON equipe
 FOR EACH ROW 
 execute procedure ajout_equipe() ; 
 
+
+
+
+
+
+
+
 ------------------------------------------------------------------------------------------------
 ---- NOM : ajout_joueur                                                                     ----
 ---- DESCRIPTION : Ce trigger va se déclancher lorsque l'on va vouloir ajouter un joueur .  ----
@@ -76,6 +83,13 @@ CREATE TRIGGER ajout_joueur
 BEFORE INSERT ON joueur
 FOR EACH ROW 
 execute procedure ajout_joueur() ; 
+
+
+
+
+
+
+
 
 --------------------------------------------------------------------------------------------------
 ---- NOM : ajout_match                                                                        ----
@@ -160,6 +174,13 @@ BEFORE INSERT ON match
 FOR EACH ROW 
 execute procedure ajout_match() ; 
 
+
+
+
+
+
+
+
 --------------------------------------------------------------------------------------------------------
 ---- NOM : remplir_statistiques_joueurs                                                             ----
 ---- DESCRIPTION : Ce trigger va ajouter les infos d'un joueur dans la table statistiques_joueurs   ----
@@ -184,6 +205,13 @@ CREATE TRIGGER remplir_statistiques_joueurs
 AFTER INSERT ON joueur
 FOR EACH ROW
 EXECUTE PROCEDURE remplir_statistiques_joueurs();
+
+
+
+
+
+
+
 
 --------------------------------------------------------------------------------------------------------
 ---- NOM : set_statistiques_joueurs                                                                 ----
@@ -219,6 +247,13 @@ CREATE TRIGGER set_statistiques_joueurs
 AFTER INSERT ON statistiques_match
 FOR EACH ROW 
 execute procedure set_statistiques_joueurs();
+
+
+
+
+
+
+
 
 --------------------------------------------------------------------------------------------------------
 ---- NOM : set_statistiques_match                                                                   ----
@@ -271,6 +306,13 @@ AFTER INSERT ON match
 FOR EACH ROW 
 execute procedure set_statistiques_match();
 
+
+
+
+
+
+
+
 --------------------------------------------------------------------------------------------------------
 ---- NOM : remplir_classement                                                                       ----
 ---- DESCRIPTION : Ce trigger va remplir le classement dès lors qu'une équipe est                   ----
@@ -300,6 +342,13 @@ CREATE TRIGGER remplir_classement
 AFTER INSERT ON equipe
 FOR EACH ROW
 EXECUTE PROCEDURE remplir_classement();
+
+
+
+
+
+
+
 
 --------------------------------------------------------------------------------------------------------
 ---- NOM : update_classement                                                                        ----
@@ -398,6 +447,13 @@ CREATE TRIGGER update_classement
 AFTER INSERT ON match
 FOR EACH ROW 
 execute procedure update_classement();
+
+
+
+
+
+
+
 
 -------------------------------------------------------------------------------------------------------------------------
 ---- NOM : penalite_classement                                                                                       ----
@@ -511,6 +567,13 @@ AFTER INSERT ON avoir_penalite
 FOR EACH ROW 
 execute procedure penalite_classement();
 
+
+
+
+
+
+
+
 --------------------------------------------------------------------------------------------------------
 ---- NOM : classement_meilleur_joueur                                                               ----
 ---- DESCRIPTION : Ce trigger va modifier le classement des meilleurs joueurs                       ----    
@@ -561,6 +624,13 @@ CREATE TRIGGER classement_meilleur_joueur
 AFTER INSERT OR UPDATE ON statistiques_joueurs 
 FOR EACH ROW 
 execute procedure classement_meilleur_joueur();
+
+
+
+
+
+
+
 
 --------------------------------------------------------------------------------------------------------
 ---- NOM : ajout_remplaçant                                                                         ----
@@ -626,7 +696,18 @@ LANGUAGE plpgsql;
 
 
 
------------------------------------------
+
+
+
+
+
+-------------------------------------------------------------------------------------------------------------
+---- NOM : classement_perso_fictif                                                                       ----
+---- DESCRIPTION : Ce trigger va modifier le classement des personnages fictifs les plus utilisés        ----
+---- Les joueurs utilisent des personnages fictifs dans leurs parties.                                   ----
+---- Les personnages fictifs peuvent être utilisés plusieurs fois : ce trigger compte le nombre          ----
+---- d'utilisation de ces personnages fictifs et place ceux ont été le plus utilisés dans le classement  ----
+-------------------------------------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION classement_perso_fictif() 
 RETURNS trigger
@@ -670,3 +751,155 @@ CREATE TRIGGER classement_perso_fictif
 AFTER INSERT ON statistiques_match 
 FOR EACH ROW 
 execute procedure classement_perso_fictif(); 
+
+
+
+
+
+
+
+
+--------------------------------------------------------------------------------------------------------
+---- NOM : prevision                                                                                ----
+---- DESCRIPTION : Cette fonction va indiquer quelle équipe serait susceptible  de gagner le match  ----
+---- parmi les deux équipes données.                                                                ----
+----                                                                                                ----
+---- COMPARAISON  :                                                                                 ----
+----    -- Du nombre total de victoires, de scores marqués et encaissés.                            ----
+----    -- Et on ajoute des points au compteur                                                      ----
+----    -- Le compteur permet de savoir quelle équipe est avantagée, et donc quelle équipe          ----
+----    -- pourrait remporter le prochain match                                                     ----
+--------------------------------------------------------------------------------------------------------
+
+
+
+
+
+CREATE OR REPLACE FUNCTION prevision(equipe1 VARCHAR, equipe2 VARCHAR ) 
+RETURNS void
+as $$ 
+DECLARE 
+  nb_victoire_equipe1 INT ;   
+  nb_victoire_equipe2 INT ; 
+
+  nb_score_marque_equipe1 INT ; -- Nombre de points du score gagné
+  nb_score_encaisse_equipe1 iNT ; 
+
+  nb_score_marque_equipe2 INT ; -- Nombre de points du score gagné
+  nb_score_encaisse_equipe2 iNT ; 
+
+  compteur_equipe1 INT; 
+  compteur_equipe2 INT; 
+
+  v_id_equipe1 INT ; 
+  v_id_equipe2 INT ; 
+  v_score_equipe1 INT ; 
+  v_score_equipe2 INT ; 
+
+  id_de_lequipe1 INT := (select id_equipe from equipe where nom_equipe like equipe1) ; 
+  id_de_lequipe2 INT := (select id_equipe from equipe where nom_equipe like equipe2); 
+
+
+  mon_curseur_prevision cursor for select id_equipe_1, id_equipe_2, score_equipe_1, score_equipe_2 from match ; 
+
+BEGIN 
+  nb_score_marque_equipe1 =0 ; 
+  nb_score_encaisse_equipe1=0 ; 
+  nb_score_marque_equipe2 =0 ; 
+  nb_score_encaisse_equipe2 =0 ; 
+  nb_victoire_equipe1    =0 ; 
+  nb_victoire_equipe2 =0 ; 
+
+
+
+
+  OPEN mon_curseur_prevision ; 
+  LOOP 
+  FETCH mon_curseur_prevision INTO v_id_equipe1, v_id_equipe2, v_score_equipe1 , v_score_equipe2;
+  EXIT WHEN NOT FOUND;
+
+
+
+
+  if v_id_equipe1 = id_de_lequipe1 THEN 
+    nb_score_marque_equipe1 = nb_score_marque_equipe1 + v_score_equipe1 ; 
+    nb_score_encaisse_equipe1 = nb_score_encaisse_equipe1 + v_score_equipe2 ; 
+
+    if v_score_equipe1 > v_score_equipe2 THEN 
+      nb_victoire_equipe1 = nb_victoire_equipe1 + 1 ; 
+    end if ; 
+  else 
+    nb_score_marque_equipe1 = nb_score_marque_equipe1 + v_score_equipe2 ; 
+    nb_score_encaisse_equipe1 = nb_score_encaisse_equipe1 + v_score_equipe1 ; 
+
+    if v_score_equipe2 > v_score_equipe1 THEN 
+      nb_victoire_equipe1 = nb_victoire_equipe1 + 1 ; 
+    end if ; 
+  end if ; 
+
+  
+
+
+
+
+
+
+  if v_id_equipe2 = id_de_lequipe1 THEN 
+    nb_score_marque_equipe2 = nb_score_marque_equipe2 + v_score_equipe1 ; 
+    nb_score_encaisse_equipe2 = nb_score_encaisse_equipe2 + v_score_equipe2 ; 
+
+    if v_score_equipe1 > v_score_equipe2 THEN 
+      nb_victoire_equipe2 = nb_victoire_equipe2 + 1 ; 
+    end if ; 
+  else 
+    nb_score_marque_equipe2 = nb_score_marque_equipe2 + v_score_equipe2 ; 
+    nb_score_encaisse_equipe2 = nb_score_encaisse_equipe2 + v_score_equipe1 ; 
+
+    if v_score_equipe2 > v_score_equipe1 THEN 
+      nb_victoire_equipe2 = nb_victoire_equipe2 + 1 ; 
+    end if ; 
+  end if ; 
+
+
+
+
+
+  -- Comparaison entre les équipes sur différents critères
+  if nb_victoire_equipe1 > nb_victoire_equipe2 THEN 
+    compteur_equipe1 = compteur_equipe1 + 1 ; 
+  else 
+    compteur_equipe2 = compteur_equipe2 + 1 ; 
+  end if ; 
+
+  if nb_score_encaisse_equipe1 < nb_score_encaisse_equipe2 THEN 
+    compteur_equipe1 = compteur_equipe1 + 1 ; 
+  else 
+    compteur_equipe2 = compteur_equipe2 + 1 ; 
+  end if ; 
+  
+  if nb_score_marque_equipe1 > nb_score_marque_equipe1 THEN 
+      compteur_equipe1 = compteur_equipe1 + 1 ; 
+  else 
+    compteur_equipe2 = compteur_equipe2 + 1 ; 
+  end if ; 
+
+  end loop ; 
+  close mon_curseur_prevision ; 
+
+
+
+
+  
+  if compteur_equipe1 > compteur_equipe2 THEN 
+    RAISE NOTICE 'Lequipe % a plus de chances de gagner ce match', equipe1;
+  else    
+    RAISE NOTICE 'Lequipe % a plus de chances de gagner ce match', equipe2;
+  end if ; 
+
+
+
+
+  
+END; 
+$$
+LANGUAGE plpgsql; 
